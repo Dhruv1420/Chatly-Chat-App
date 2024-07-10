@@ -138,7 +138,7 @@ const acceptFriendRequest = TryCatch(async (req, res, next) => {
     await request.deleteOne();
 
     return res.status(200).json({
-      status: true,
+      success: true,
       message: "Friend Request Rejected",
     });
   }

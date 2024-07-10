@@ -7,23 +7,56 @@ import {
   DialogTitle,
   InputAdornment,
   List,
+  Skeleton,
   Stack,
   TextField,
+  Typography,
 } from "@mui/material";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useAsyncMutation, useErrors } from "../../hooks/hook";
+import {
+  useLazySearchUserQuery,
+  useMyProfileQuery,
+  useSendFriendRequestMutation,
+} from "../../redux/api/api";
+import { setIsSearch } from "../../redux/reducers/misc";
 import UserItem from "../shared/UserItem";
-import { useState } from "react";
-import { sampleUsers } from "../../constants/sampleData";
 
 const Search = () => {
+  const { isSearch } = useSelector((state) => state.misc);
+  const [searchUser] = useLazySearchUserQuery();
+  const { data, isError, error, isLoading } = useMyProfileQuery();
+  const [sendFriendRequest, isLoadingFriendRequest] = useAsyncMutation(
+    useSendFriendRequestMutation
+  );
+  const dispatch = useDispatch();
+
   const search = useInputValidation("");
+  const [users, setUsers] = useState([]);
 
-  let isLoadingFriendRequest = false;
-  const [users, setUsers] = useState(sampleUsers);
+  useErrors([{ isError, error }]);
 
-  const addFriendHandler = (id) => {};
+  const addFriendHandler = async (id) => {
+    await sendFriendRequest("Sending friend request...", { userId: id });
+  };
+
+  const handleClose = () => dispatch(setIsSearch(false));
+
+  useEffect(() => {
+    const timeOutId = setTimeout(() => {
+      searchUser(search.value)
+        .then(({ data }) => setUsers(data.users))
+        .catch((e) => console.log(e));
+    }, 1000);
+
+    return () => {
+      clearTimeout(timeOutId);
+    };
+  }, [search.value, searchUser]);
 
   return (
-    <Dialog open>
+    <Dialog open={isSearch} onClose={handleClose}>
       <Stack p={"2rem"} direction={"column"} maxWidth={"35rem"}>
         <DialogTitle textAlign={"center"}>Find People</DialogTitle>
         <TextField
@@ -42,14 +75,24 @@ const Search = () => {
         />
 
         <List sx={{ minWidth: "25rem" }}>
-          {users.map((user) => (
-            <UserItem
-              user={user}
-              key={user._id}
-              handler={addFriendHandler}
-              handlerIsLoading={isLoadingFriendRequest}
-            />
-          ))}
+          {isLoading ? (
+            <Skeleton />
+          ) : users.length > 0 ? (
+            users.map((user) => {
+              if (user._id !== data?.user._id) {
+                return (
+                  <UserItem
+                    user={user}
+                    key={user._id}
+                    handler={addFriendHandler}
+                    handlerIsLoading={isLoadingFriendRequest}
+                  />
+                );
+              }
+            })
+          ) : (
+            <Typography textAlign={"center"}>No More Users</Typography>
+          )}
         </List>
       </Stack>
     </Dialog>

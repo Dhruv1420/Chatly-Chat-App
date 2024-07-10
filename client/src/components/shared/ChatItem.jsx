@@ -1,8 +1,9 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable react-refresh/only-export-components */
 import { Box, Stack, Typography } from "@mui/material";
-import { Link } from "../styles/StyledComponents";
+import { motion } from "framer-motion";
 import { memo } from "react";
+import { Link } from "../styles/StyledComponents";
 import AvatarCard from "./AvatarCard";
 
 const ChatItem = ({
@@ -24,14 +25,17 @@ const ChatItem = ({
       to={`/chat/${_id}`}
       onContextMenu={(e) => handleDeleteChat(e, _id, groupChat)}
     >
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: "-100%" }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
         style={{
           display: "flex",
           alignItems: "center",
           padding: "0.7rem",
-          gap: "1rem",
-          backgroundColor: sameSender ? "black" : "unset",
-          color: sameSender ? "white" : "unset",
+          gap: groupChat ? "2rem" : "1rem",
+          backgroundColor: sameSender ? "rgba(0,0,0,0.2)" : "unset",
+          color: sameSender ? "black" : "unset",
           position: "relative",
         }}
       >
@@ -58,7 +62,7 @@ const ChatItem = ({
             }}
           />
         )}
-      </div>
+      </motion.div>
     </Link>
   );
 };

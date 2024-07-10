@@ -81,7 +81,7 @@ const getAllChats = TryCatch(async (req, res) => {
 
   const transformedChats = await Promise.all(
     chats.map(async ({ members, _id, groupChat, name, creator }) => {
-      const totalMessages = await Message.countDocuments({ chatId: _id });
+      const totalMessages = await Message.countDocuments({ chat: _id });
 
       return {
         _id,

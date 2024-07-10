@@ -15,10 +15,14 @@ const errorMiddleware = (err, req, res, next) => {
     err.statusCode = 400;
   }
 
-  return res.status(err.statusCode).json({
-    status: false,
-    message: envMode === "DEVELOPMENT" ? err : err.message,
-  });
+  const response = {
+    success: false,
+    message: err.message,
+  };
+
+  if (envMode === "DEVELOPMENT") response.error = err;
+
+  return res.status(err.statusCode).json(response);
 };
 
 const TryCatch = (func) => async (req, res, next) => {

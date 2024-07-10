@@ -22,6 +22,7 @@ import { usernameValidator } from "../utils/validators";
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const toggleLogin = () => setIsLogin((prev) => !prev);
 
@@ -35,13 +36,8 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
-    const config = {
-      withCredentials: true,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    };
+    const toastId = toast.loading("Logging In...");
+    setIsLoading(true);
 
     try {
       const { data } = await axios.post(
@@ -50,18 +46,29 @@ const Login = () => {
           username: username.value,
           password: password.value,
         },
-        config
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
-
-      dispatch(userExists(true));
-      toast.success(data.message);
+      
+      dispatch(userExists(data.user));
+      toast.success(data.message, { id: toastId });
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Something Went Wrong");
+      toast.error(error?.response?.data?.message || "Something Went Wrong", {
+        id: toastId,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSignUp = async (e) => {
     e.preventDefault();
+    const toastId = toast.loading("Signing Up...");
+    setIsLoading(true);
 
     const formData = new FormData();
     formData.append("avatar", avatar.file);
@@ -84,10 +91,14 @@ const Login = () => {
         config
       );
 
-      dispatch(userExists(true));
-      toast.success(data.message);
+      dispatch(userExists(data.user));
+      toast.success(data.message, { id: toastId });
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Something Went Wrong");
+      toast.error(error?.response?.data?.message || "Something Went Wrong", {
+        id: toastId,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -153,6 +164,7 @@ const Login = () => {
                   variant="contained"
                   color="primary"
                   type="submit"
+                  disabled={isLoading}
                 >
                   Login
                 </Button>
@@ -166,6 +178,7 @@ const Login = () => {
                   fullWidth
                   variant="text"
                   onClick={toggleLogin}
+                  disabled={isLoading}
                 >
                   Not Registered Yet? Sign Up
                 </Button>
@@ -280,6 +293,7 @@ const Login = () => {
                   variant="contained"
                   color="primary"
                   type="submit"
+                  disabled={isLoading}
                 >
                   Sign Up
                 </Button>
@@ -293,6 +307,7 @@ const Login = () => {
                   fullWidth
                   variant="text"
                   onClick={toggleLogin}
+                  disabled={isLoading}
                 >
                   Already Registerd? Login
                 </Button>

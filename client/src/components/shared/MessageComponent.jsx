@@ -7,15 +7,18 @@ import { purple } from "../../constants/color";
 import moment from "moment";
 import { fileFormat } from "../../lib/features";
 import RenderAttachment from "./RenderAttachment";
+import { motion } from "framer-motion";
 
-const MessageComponent = ({ message, user }) => {
+const MessageComponent = ({ message, user, groupChat }) => {
   const { sender, content, attachments = [], createdAt } = message;
 
-  const sameSender = sender._id === user._id;
+  const sameSender = sender?._id === user?._id;
   const timeAgo = moment(createdAt).fromNow();
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, x: "-100%" }}
+      whileInView={{ opacity: 1, x: 0 }}
       style={{
         alignSelf: sameSender ? "flex-end" : "flex-start",
         backgroundColor: "white",
@@ -25,7 +28,7 @@ const MessageComponent = ({ message, user }) => {
         width: "fit-content",
       }}
     >
-      {!sameSender && (
+      {groupChat && !sameSender && (
         <Typography color={purple} fontWeight={"600"} variant="caption">
           {sender.name}
         </Typography>
@@ -57,7 +60,7 @@ const MessageComponent = ({ message, user }) => {
       <Typography variant="caption" color={"text.secondary"}>
         {timeAgo}
       </Typography>
-    </div>
+    </motion.div>
   );
 };
 

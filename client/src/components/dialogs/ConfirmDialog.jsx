@@ -9,14 +9,12 @@ import {
   DialogTitle,
 } from "@mui/material";
 
-const ConfirmDeleteDialog = ({ open, handleClose, deleteHandler }) => {
+const ConfirmDialog = ({ open, handleClose, deleteHandler, message }) => {
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle>Confirm Delete</DialogTitle>
+      <DialogTitle>Confirmation</DialogTitle>
       <DialogContent>
-        <DialogContentText>
-          Are you sure you want to delete this group?
-        </DialogContentText>
+        <DialogContentText>{message}</DialogContentText>
       </DialogContent>
 
       <DialogActions>
@@ -29,4 +27,4 @@ const ConfirmDeleteDialog = ({ open, handleClose, deleteHandler }) => {
   );
 };
 
-export default ConfirmDeleteDialog;
+export default ConfirmDialog;

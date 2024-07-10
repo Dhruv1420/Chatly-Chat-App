@@ -5,7 +5,7 @@ import { Container, Paper, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { darkPurple } from "../../constants/color";
 
-const Table = ({ rows, columns, heading, rowHeight = 52 }) => {
+const Table = ({ rows = [], columns = [], heading, rowHeight = 52 }) => {
   return (
     <Container
       sx={{

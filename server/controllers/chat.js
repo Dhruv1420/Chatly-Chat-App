@@ -1,15 +1,19 @@
 import {
   ALERT,
-  NEW_ATTACHMENT,
+  NEW_MESSAGE,
   NEW_MESSAGE_ALERT,
   REFETCH_CHATS,
 } from "../constants/events.js";
 import { getOtherMember } from "../lib/helper.js";
 import { TryCatch } from "../middlewares/error.js";
 import { Chat } from "../models/chat.js";
-import { User } from "../models/user.js";
 import { Message } from "../models/message.js";
-import { dltFilesFromCloudinary, emitEvent } from "../utils/features.js";
+import { User } from "../models/user.js";
+import {
+  dltFilesFromCloudinary,
+  emitEvent,
+  uploadFilesToCloudinary,
+} from "../utils/features.js";
 import { ErrorHandler } from "../utils/utility.js";
 
 const newGroupChat = TryCatch(async (req, res, next) => {
@@ -27,7 +31,7 @@ const newGroupChat = TryCatch(async (req, res, next) => {
   emitEvent(req, REFETCH_CHATS, members);
 
   return res.status(201).json({
-    status: true,
+    success: true,
     message: "Group Created Successfully",
   });
 });
@@ -58,7 +62,7 @@ const getMyChats = TryCatch(async (req, res, next) => {
   });
 
   return res.status(200).json({
-    status: true,
+    success: true,
     chats: transformedChats,
   });
 });
@@ -78,7 +82,7 @@ const getMyGroups = TryCatch(async (req, res, next) => {
   }));
 
   return res.status(200).json({
-    status: true,
+    success: true,
     groups,
   });
 });
@@ -114,17 +118,15 @@ const addMembers = TryCatch(async (req, res, next) => {
 
   const allUsersName = uniqueMembers.map((i) => i.name).join(",");
 
-  emitEvent(
-    req,
-    ALERT,
-    chat.members,
-    `${allUsersName} has been added in the group`
-  );
+  emitEvent(req, ALERT, chat.members, {
+    message: `${allUsersName} has been added in the group`,
+    chatId,
+  });
 
   emitEvent(req, REFETCH_CHATS, chat.members);
 
   return res.status(200).json({
-    status: true,
+    success: true,
     message: "Unique Members Added Successfully",
   });
 });
@@ -150,21 +152,21 @@ const removeMember = TryCatch(async (req, res, next) => {
   if (chat.members.length <= 3)
     return next(new ErrorHandler("Group must have at least 3 members", 400));
 
+  const allChatMembers = chat.members.map((i) => i.toString());
+
   chat.members = chat.members.filter((i) => i.toString() !== userId.toString());
 
   await chat.save();
 
-  emitEvent(
-    req,
-    ALERT,
-    chat.members,
-    `${userWillRemove.name} has been removed from the group`
-  );
+  emitEvent(req, ALERT, chat.members, {
+    message: `${userWillRemove.name} has been removed from the group`,
+    chatId,
+  });
 
-  emitEvent(req, REFETCH_CHATS, chat.members);
+  emitEvent(req, REFETCH_CHATS, allChatMembers);
 
   return res.status(200).json({
-    status: true,
+    success: true,
     message: "Member Removed Successfully",
   });
 });
@@ -200,10 +202,13 @@ const leaveGroup = TryCatch(async (req, res, next) => {
     chat.save(),
   ]);
 
-  emitEvent(req, ALERT, chat.members, `User ${user} has left the group`);
+  emitEvent(req, ALERT, chat.members, {
+    message: `User ${user} has left the group`,
+    chatId,
+  });
 
   return res.status(200).json({
-    status: true,
+    success: true,
     message: "Group Left Successfully",
   });
 });
@@ -225,8 +230,7 @@ const sendAttachments = TryCatch(async (req, res, next) => {
 
   if (!chat) return next(new ErrorHandler("Chat Not Found", 404));
 
-  // upload files
-  const attachments = [];
+  const attachments = await uploadFilesToCloudinary(files);
 
   const msgForDB = {
     content: "",
@@ -245,7 +249,7 @@ const sendAttachments = TryCatch(async (req, res, next) => {
 
   const message = await Message.create(msgForDB);
 
-  emitEvent(res, NEW_ATTACHMENT, chat.members, {
+  emitEvent(res, NEW_MESSAGE, chat.members, {
     message: msgForRealTime,
     chatId,
   });
@@ -253,7 +257,7 @@ const sendAttachments = TryCatch(async (req, res, next) => {
   emitEvent(res, NEW_MESSAGE_ALERT, chat.members, { chatId });
 
   return res.status(200).json({
-    status: true,
+    success: true,
     message,
   });
 });
@@ -275,7 +279,7 @@ const getChatDetails = TryCatch(async (req, res, next) => {
     }));
 
     return res.status(200).json({
-      status: true,
+      success: true,
       chat,
     });
   } else {
@@ -283,7 +287,7 @@ const getChatDetails = TryCatch(async (req, res, next) => {
     if (!chat) return next(new ErrorHandler("Chat Not Found", 404));
 
     return res.status(200).json({
-      status: true,
+      success: true,
       chat,
     });
   }
@@ -308,7 +312,7 @@ const renameGroup = TryCatch(async (req, res, next) => {
   emitEvent(req, REFETCH_CHATS, chat.members);
 
   return res.status(200).json({
-    status: true,
+    success: true,
     message: "Group Renamed Successfully",
   });
 });
@@ -346,7 +350,7 @@ const deleteChat = TryCatch(async (req, res, next) => {
   emitEvent(req, REFETCH_CHATS, chat.members);
 
   return res.status(200).json({
-    status: true,
+    success: true,
     message: "Chat Deleted Successfully",
   });
 });
@@ -356,6 +360,13 @@ const getMessages = TryCatch(async (req, res, next) => {
   const { page = 1 } = req.query;
   const limit = 20;
   const skip = (page - 1) * limit;
+
+  const chat = await Chat.findById(chatId);
+  if (!chat) return next(new ErrorHandler("Chat Not Found", 404));
+  if (!chat.members.includes(req.user.toString()))
+    return next(
+      new ErrorHandler("You are not allowed to access this chat", 403)
+    );
 
   const [messages, totalMessagesCnt] = await Promise.all([
     Message.find({ chat: chatId })
@@ -370,7 +381,7 @@ const getMessages = TryCatch(async (req, res, next) => {
   const totalPages = Math.ceil(totalMessagesCnt / limit);
 
   return res.status(200).json({
-    status: true,
+    success: true,
     messages: messages.reverse(),
     totalPages,
   });
@@ -378,14 +389,14 @@ const getMessages = TryCatch(async (req, res, next) => {
 
 export {
   addMembers,
+  deleteChat,
+  getChatDetails,
+  getMessages,
   getMyChats,
   getMyGroups,
   leaveGroup,
   newGroupChat,
   removeMember,
-  sendAttachments,
-  getChatDetails,
   renameGroup,
-  deleteChat,
-  getMessages,
+  sendAttachments,
 };
