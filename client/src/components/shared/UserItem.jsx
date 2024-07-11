@@ -29,6 +29,11 @@ const UserItem = ({
   const openConfirmHandler = () => setConfirmDialog(true);
   const closeConfirmHandler = () => setConfirmDialog(false);
 
+  const deleteHandler = () => {
+    handler(_id);
+    closeConfirmHandler();
+  };
+
   return (
     <ListItem>
       <Stack
@@ -81,7 +86,7 @@ const UserItem = ({
             <ConfirmDialog
               open={confirmDialog}
               handleClose={closeConfirmHandler}
-              deleteHandler={() => handler(_id)}
+              deleteHandler={deleteHandler}
               message={"Are you sure you want to remove this member?"}
             />
           </Suspense>
