@@ -2,7 +2,7 @@
 import { Helmet } from "react-helmet-async";
 
 const Title = ({
-  title = "Chat App",
+  title = "Chatly",
   description = "Chat App Called Apni Chat",
 }) => {
   return (
